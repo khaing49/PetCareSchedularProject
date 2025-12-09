@@ -82,7 +82,12 @@ public class Pet {
         this.contactInfo=contactInfo;
     }
     public void setRegistrationDate(LocalDate registrationDate){
-        if (registrationDate == null) throw new IllegalArgumentException("Registration date cannot be null.");
+        if (registrationDate == null){
+            throw new IllegalArgumentException("Registration date cannot be null.");
+        }
+        if (registrationDate.isAfter(LocalDate.now())) {
+        throw new IllegalArgumentException("Registration date cannot be in the future: " + registrationDate);
+        }
         this.registrationDate=registrationDate;
     }
     

@@ -23,7 +23,7 @@ public class PetCareSchedular {
         File file = new File("pet_data.txt");
         if (!file.exists()) {
         System.out.println("No saved data found. Starting with an empty list.");
-       
+        return;
         }
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
@@ -33,7 +33,7 @@ public class PetCareSchedular {
                 String id = parts[0];
                 String petName = parts[1];
                 String species = parts[2];
-                int age = Integer.parseInt(parts[3]);
+                double age = Double.parseDouble(parts[3]);
                 String ownerName=parts[4];
                 String contactInfo=parts[5];
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
@@ -49,12 +49,14 @@ public class PetCareSchedular {
        } catch (NumberFormatException e) {
         System.out.println("Invalid age format in file.");
         e.printStackTrace();
+       }catch (DateTimeParseException e) { // Added specific catch for date parsing error
+        System.out.println("Invalid date format in file.");
+        e.printStackTrace();
        }
     }
     
 
     public static void registerThePet(Scanner scanner, HashMap<String, Pet> allData) {
-        try {
             System.out.println("**Register your pet**");
             String id;
             do {
@@ -68,32 +70,42 @@ public class PetCareSchedular {
             String petName = scanner.nextLine();
             System.out.println("Enter the species: ");
             String species = scanner.nextLine();
-            System.out.print("Enter pet age: ");
+            System.out.print("Enter pet age: (1 or 1.5 etc...) ");
             double age = scanner.nextDouble();
             scanner.nextLine();
             while (age <= 0) {
                 System.out.print("Age can't be zero or negative!!");
-                System.out.print("Enter pet age: ");
+                System.out.print("Enter pet age: (1 or 1.5 etc...) ");
                 age = scanner.nextDouble();
                 scanner.nextLine();
             }
             System.out.println("Enter the owner name: ");
             String ownerName = scanner.nextLine();
-            System.out.println("Enter the contact info: ");
+            System.out.println("Enter the contact info:(phone-number) ");
             String contactInfo = scanner.nextLine();
             LocalDate registrationDate = null;
+            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            boolean dateParsedSuccessfully=false;
+            do{
             System.out.println("Enter the registeration date in MM/dd/yyyy format :");
             String inputDate = scanner.nextLine();
-            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            try{
             registrationDate = LocalDate.parse(inputDate, dateFormat);
+            if (registrationDate.isAfter(LocalDate.now())) {
+            System.out.println("Registration date cannot be in the future. Please enter today's date or a past date.");
+            registrationDate = null;
+            } else {
+            dateParsedSuccessfully=true;
+            }
+            }catch(java.time.format.DateTimeParseException dfe){
+              System.out.println("Incorrect format. Please use the MM/dd/yyyy format."); 
+}           }
+            while(!dateParsedSuccessfully);
             Pet pet = new Pet(id, petName, species, age, ownerName, contactInfo, registrationDate);
             allData.put(id, pet);
             System.out.println("Pet registered successfully!");
-        } catch (DateTimeParseException dfe) {
-            System.out.println("Incorrect format of date or time.");
-        }
-    }
-
+         }   
+               
     public static void scheduleAnAppointment(Scanner scanner, HashMap<String, Pet> allData) {
         System.out.println("**Schedule an appointment**");
         try {
@@ -108,27 +120,45 @@ public class PetCareSchedular {
             String appointmentType = scanner.nextLine();
             LocalDate date = null;
             LocalTime time = null;
+            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
             String inputDate;
+            boolean dateParsedSuccessfully=false;
             do {
                 System.out.println("Enter the appointment date in MM/dd/yyyy format :");
                 inputDate = scanner.nextLine();
-                DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+               try{
                 date = LocalDate.parse(inputDate, dateFormat);
                 if (date.isBefore(LocalDate.now())) {
                     System.out.println("Appointment date cannot be in the past!Please choose another date!");
+                    date=null;
                 }
-            } while (date.isBefore(LocalDate.now()));
-            System.out.println("Enter the appointment time in HH:mm:ss format :");
+                else{
+                   dateParsedSuccessfully=true; 
+                }
+               }catch(java.time.format.DateTimeParseException dfe){
+                   System.out.println("Incorrect format. Please use the MM/dd/yyyy format.");
+               }
+            } while (!dateParsedSuccessfully);
+            boolean timeParsedSuccessfully=false;
+            do{
+            System.out.println("Enter the appointment time in HH:mm:ss format :(12:30:00) ");
             String inputTime = scanner.nextLine();
-            DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
+            try{
             time = LocalTime.parse(inputTime, timeFormat);
+            timeParsedSuccessfully=true;
+            }catch(java.time.format.DateTimeParseException dfe){
+                System.out.println("Incorrect time format. Please use the HH:mm:ss format: (12:30:00) ");
+            }
+            } while (!timeParsedSuccessfully);
             System.out.print("Enter any additional notes: ");
             String note = scanner.nextLine();
             Appointment appointment = new Appointment(appointmentType, date, time, note);
             pet.addAppointment(appointment);
             System.out.print("Scheduled successfully");
-        } catch (DateTimeParseException dfe) {
-            System.out.println("Incorrect format of date or time!");
+        } catch (Exception e) {
+           System.out.println("An unexpected error occurred during scheduling.");
+           e.printStackTrace(); 
         }
     }
 
@@ -299,6 +329,7 @@ public class PetCareSchedular {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         HashMap<String, Pet> allData = new HashMap<>();
+        loadData(allData);
         boolean running = true;
         while (running) {
             System.out.println("\n=== PetCare Schedular ===");
@@ -312,8 +343,6 @@ public class PetCareSchedular {
 
             String choice = scanner.nextLine();
             switch (choice) {
-                case "0" :
-                     loadData(allData);
                 case "1":
                     registerThePet(scanner, allData);
                     break;
