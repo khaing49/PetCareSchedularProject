@@ -25,11 +25,17 @@ public class PetCareSchedular {
         System.out.println("No saved data found. Starting with an empty list.");
         return;
         }
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
         while ((line = reader.readLine()) != null) {
+            String[] petAndAppointments = line.split("\\|", 2);
+            String petData = petAndAppointments[0];
             String[] parts = line.split(",");
-            if (parts.length == 8) {
+            final int num=7;
+            if (parts.length >=num) {
+                try{
                 String id = parts[0];
                 String petName = parts[1];
                 String species = parts[2];
@@ -39,21 +45,42 @@ public class PetCareSchedular {
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
                 LocalDate registrationDate = LocalDate.parse(parts[6], formatter);
                 Pet pet = new Pet(id, petName, species, age, ownerName, contactInfo, registrationDate);
-                allData.put(id, pet);
+                if (petAndAppointments.length > 1) {
+                    String appointmentData = petAndAppointments[1];           
+                    String[] appointmentStrings = appointmentData.split("\\|"); 
+                        for (String apStr : appointmentStrings) {
+                            if (apStr.trim().isEmpty()) continue;
+                            String[] apParts = apStr.split(",", 4);
+                            if (apParts.length == 4) {
+                                String type = apParts[0];
+                                LocalDate date = LocalDate.parse(apParts[1], dateFormat);
+                                LocalTime time = LocalTime.parse(apParts[2], timeFormat);
+                                String note = apParts[3].replace(";", ","); 
+                                Appointment appointment = new Appointment(type, date, time, note);
+                                pet.addAppointment(appointment);
+                            } else {
+                                System.err.println("Skipping malformed appointment data: " + apStr);
+                            }
+                        }
+                    }
+                    allData.put(id, pet);  
+                } catch (NumberFormatException e) {
+                    System.err.println("Skipping pet due to invalid number/age format: " + parts[3]);
+                    e.printStackTrace();
+                } catch (DateTimeParseException e) {
+                    System.err.println("Skipping pet due to invalid date/time format in record: " + line);
+                    e.printStackTrace();
+                }
+            } else {
+                 System.err.println("Skipping malformed pet data line: " + line);
             }
         }
         System.out.println("Pet data loaded successfully.");
-       } catch (IOException e) {
+    } catch (IOException e) {
         System.out.println("An error occurred while reading from the file.");
         e.printStackTrace();
-       } catch (NumberFormatException e) {
-        System.out.println("Invalid age format in file.");
-        e.printStackTrace();
-       }catch (DateTimeParseException e) { // Added specific catch for date parsing error
-        System.out.println("Invalid date format in file.");
-        e.printStackTrace();
-       }
     }
+}
     
 
     public static void registerThePet(Scanner scanner, HashMap<String, Pet> allData) {
@@ -103,6 +130,7 @@ public class PetCareSchedular {
             while(!dateParsedSuccessfully);
             Pet pet = new Pet(id, petName, species, age, ownerName, contactInfo, registrationDate);
             allData.put(id, pet);
+            storeToFile(allData);
             System.out.println("Pet registered successfully!");
          }   
                
@@ -155,6 +183,7 @@ public class PetCareSchedular {
             String note = scanner.nextLine();
             Appointment appointment = new Appointment(appointmentType, date, time, note);
             pet.addAppointment(appointment);
+            storeToFile(allData);
             System.out.print("Scheduled successfully");
         } catch (Exception e) {
            System.out.println("An unexpected error occurred during scheduling.");
@@ -165,7 +194,7 @@ public class PetCareSchedular {
     public static void storeToFile(HashMap<String, Pet> allData) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("pet_data.txt"))) {
         for (Pet p : allData.values()) {
-        writer.write(p.toString());
+        writer.write(p.toFileString());
         writer.newLine();
         System.out.println("Successfully wrote to the file.");
         }
@@ -191,7 +220,8 @@ public class PetCareSchedular {
                 System.out.println("\nAll Registered Pets :");
                 for (Pet p : allData.values()) {
                     System.out.print("ID: " + p.getId() + "\nPet Name: " + p.getPetName()
-                            + "\nSpecies: " + p.getSpecies() + "\nAge: " + p.getAge() + "\nOwner Name: " + p.getOwnerName());
+                            + "\nSpecies: " + p.getSpecies() + "\nAge: " + p.getAge() + "\nOwner Name: " + p.getOwnerName()+"\n");
+                    System.out.println("------------------------");
                 }
                 break;
             case "2":

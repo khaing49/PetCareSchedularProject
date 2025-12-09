@@ -62,6 +62,14 @@ public class Appointment {
                 "\nTime: "+this.time+
                 "\nNote: "+this.note;
     }
+    public String toFileString() {
+        String safeNote = (this.note == null) ? "" : this.note.replace(",", ";");
+        
+        return this.appointmentType + ","
+                + this.date+ ","
+                + this.time+ ","
+                + safeNote;
+    }
     
 }
 

@@ -4,6 +4,7 @@
  */
 package Project2;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -101,5 +102,26 @@ public class Pet {
                "\nRegistration Date: "+registrationDate+
                "\nAppointments: "+appointments;
     }
+    
+    public String toFileString() {
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        StringBuilder sb = new StringBuilder();
+        sb.append(id).append(",")
+          .append(petName).append(",")
+          .append(species).append(",")
+          .append(age).append(",")
+          .append(ownerName).append(",")
+          .append(contactInfo).append(",")
+          .append(registrationDate.format(dateFormat));
+        
+        // 2. Append Appointments, using '|' as the separator
+        for (Appointment ap : appointments) {
+            // Assumes Appointment class has a toFileString() method
+            sb.append("|").append(ap.toFileString());
+        }
+        
+        return sb.toString();
+    }
+    
 }
 
